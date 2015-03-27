@@ -21,16 +21,89 @@
 namespace oat\taoRandomCat\model;
 
 use oat\taoCat\model\routing;
+use \tao_models_classes_service_StorageDirectory;
+use \tao_models_classes_service_ServiceCall;
 
 class RandomPlan implements Plan {
     
-    public function instantiateRoute();
+    /**
+     * An access to the directory where compiled data are stored.
+     * These compiled data are used at test delivery time.
+     *
+     * @var tao_models_classes_service_StorageDirectory
+     */
+    private $storage;
     
-    public function restoreRoute($stateString);
+    /**
+     * Create a new RandomPlan object.
+     *
+     * @param tao_models_classes_service_StorageDirectory $storage An access to the persistent directory where compiled data can be read for test delivery.
+     */
+    public function __construct(tao_models_classes_service_StorageDirectory $storage)
+    {
+        $this->setStorage($storage);
+    }
     
-    public function persistRoute(Route $route);
+    /**
+     * Get an access to the persistent directory where complied data is stored.
+     *
+     * @return tao_models_classes_service_StorageDirectory
+     */
+    protected function getStorage()
+    {
+        return $this->storage;
+    }
     
-    public function restoreItemRunner($itemIdentifier);
+    /**
+     * Set the access to the persistent directory where compiled data is stored.
+     *
+     * @param tao_models_classes_service_StorageDirectory $storage
+     */
+    protected function setStorage(tao_models_classes_service_StorageDirectory $storage)
+    {
+        $this->storage = $storage;
+    }
     
-    public function getItemCount();
+    /**
+     * Restore a Service Call object from a given $itemIdentifier. This Service Call object
+     * will be used by the IRT Test Driver to call the Item represented by $itemIdentifier as
+     * a TAO service.
+     *
+     * @param string $itemIdentifier The identifier of the item you want to restore the Service Call definition.
+     * @return tao_models_classes_service_ServiceCall
+     */
+    public function restoreItemRunner($itemIdentifier)
+    {
+        $fileName = $this->getStorage()->getPath() . RandomModel::ASSEMBLY_ITEMRUNNERS_DIRNAME . DIRECTORY_SEPARATOR . str_replace('X', $itemIdentifier, RandomModel::ASSEMBLY_ITEMRUNNERS_FILENAME);
+        $strServiceCall = file_get_contents($fileName);
+        return tao_models_classes_service_ServiceCall::fromString($strServiceCall);
+    }
+    
+    public function instantiateRoute()
+    {
+        return new RandomRoute($this);
+    }
+    
+    public function restoreRoute($stateString) 
+    {
+        return new RandomRoute($this, intval($stateString));
+    }
+    
+    public function persistRoute(Route $route)
+    {
+        return strval($route->getItemIndex());
+    }
+    
+    public function getItemCount()
+    {
+        $path = $this->getStorage()->getPath() . RandomModel::ASSEMBLY_ITEMRUNNERS_DIRNAME . DIRECTORY_SEPARATOR;
+        $pattern = '*.ird';
+        return count(glob("${path}${pattern}"));
+    }
+    
+    public function __toPhpCode()
+    {
+        $storageId = $this->getStorage()->getId();
+        return 'new \\oat\\taoRandomCat\\model\\RandomPlan(\\tao_models_classes_service_FileStorage::singleton()->getDirectoryById("' . $storageId . '"))';
+    }
 }

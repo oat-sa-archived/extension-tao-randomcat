@@ -21,10 +21,33 @@
 namespace oat\taoRandomCat\model;
 
 use oat\taoCat\model\routing\simple;
+use oat\taoCat\model\routing\Plan;
 
 class RandomRoute extends Route {
     
+    private $itemIndex;
+    
+    public function __construct(Plan $plan, $itemIndex)
+    {
+        parent::__construct($plan);
+        $this->setItemIndex($itemIndex);
+    }
+    
     public function getNextItem($sessionId, $candidateId, $lastItemId = '', $lastItemResponse = '', $lastItemScore = '') {
-        
+         $poolSize = $this->getPlan()->getItemCount();
+         $currentIndex = $this->getCurrentIndex();
+         $nextIndex = $currentIndex + 1;
+         
+         return ($nextIndex === $poolSize) ? '' : strval($nextIndex);
+    }
+    
+    public function getItemIndex()
+    {
+        return $this->itemIndex;
+    }
+    
+    protected function setItemIndex($itemIndex)
+    {
+        $this->itemIndex = $itemIndex;
     }
 }
